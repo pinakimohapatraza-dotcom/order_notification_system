@@ -1,0 +1,128 @@
+version: 0.2
+
+env:
+  shell: bash
+
+  variables:
+    AWS_ACCOUNT_ID: "719905538647"
+    AWS_REGION: "ap-southeast-2"
+
+    IMAGE_REPO_NAME: "order-notification-api"
+
+    ECS_CLUSTER_NAME: "order-notification-cluster"
+    ECS_SERVICE_NAME: "order-notification-service"
+
+    LAYER_NAME: "common-utils-layer"
+
+    ORDER_LAMBDA_NAME: "order-processor"
+
+phases:
+
+  install:
+
+    runtime-versions:
+      python: 3.12
+
+    commands:
+
+      - echo "Installing Layer Dependencies"
+
+      - pip install -r lambda/layers/common_layer/python/requirements.txt -t lambda/layers/common_layer/python
+
+      - echo "Installing Lambda Dependencies"
+
+      - mkdir lambda_package
+
+      - pip install -r lambda/order_processor/requirements.txt -t lambda_package
+
+  pre_build:
+
+    commands:
+
+      - echo "Logging into Amazon ECR"
+
+      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URI
+
+  build:
+
+    commands:
+
+      ########################################################
+
+      - echo "Building Docker Image"
+
+      - docker build -t $IMAGE_REPO_NAME .
+
+      - docker tag $IMAGE_REPO_NAME:latest $ECR_URI/$IMAGE_REPO_NAME:latest
+
+      ########################################################
+
+      - echo "Packaging Lambda Layer"
+
+      - cd lambda/layers/common_layer
+
+      - zip -r ../../../common-layer.zip python
+
+      - cd ../../..
+
+      ########################################################
+
+      - echo "Packaging Lambda"
+
+      - cp -r app lambda_package/
+
+      - cp lambda/order_processor/lambda_function.py lambda_package/
+
+      - cd lambda_package
+
+      - zip -r ../order-processor.zip .
+
+      - cd ..
+
+  post_build:
+
+    commands:
+
+      ########################################################
+
+      - echo "Publishing Docker Image"
+
+      - docker push $ECR_URI/$IMAGE_REPO_NAME:latest
+
+      ########################################################
+
+      - echo "Deploying ECS"
+
+      - aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment
+
+      ########################################################
+
+      - echo "Publishing Lambda Layer"
+
+      - LAYER_VERSION=$(aws lambda publish-layer-version --layer-name $LAYER_NAME --zip-file fileb://common-layer.zip --query Version --output text)
+
+      - echo "Layer Version: $LAYER_VERSION"
+
+      ########################################################
+
+      - echo "Updating Lambda"
+
+      - aws lambda update-function-code --function-name $ORDER_LAMBDA_NAME --zip-file fileb://order-processor.zip
+
+      - aws lambda wait function-updated --function-name $ORDER_LAMBDA_NAME
+
+      ########################################################
+
+      - echo "Updating Lambda Layer"
+
+      - aws lambda update-function-configuration --function-name $ORDER_LAMBDA_NAME --layers arn:aws:lambda:$AWS_REGION:$AWS_ACCOUNT_ID:layer:$LAYER_NAME:$LAYER_VERSION
+
+      - aws lambda wait function-updated --function-name $ORDER_LAMBDA_NAME
+
+artifacts:
+
+  files:
+    - common-layer.zip
+    - order-processor.zip

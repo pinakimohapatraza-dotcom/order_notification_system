@@ -5,6 +5,7 @@ import logging
 from app.schemas.order import OrderRequest
 from app.services.sqs_service import SQSService
 from app.core.context import get_request_id
+from app.constants.event_type import EventType
 
 
 
@@ -23,7 +24,7 @@ class OrderService:
 
         message = {
             "event_id": str(uuid4()),
-            "event_type": "ORDER_CREATED",
+            "event_type": EventType.ORDER_CREATED,
             "payload": order.model_dump(mode="json"),
             "request_id": request_id,
         }
