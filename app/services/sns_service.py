@@ -16,6 +16,10 @@ class SNSService:
         self.topic_arn = settings.sns_topic_arn
 
     def publish(self, subject: str, message: dict):
+        logger.info(
+            "Publishing pinaki SNS message with sns topic %s",
+            self.topic_arn,
+        )
 
         response = self.client.publish(
             TopicArn=self.topic_arn,
