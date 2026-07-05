@@ -14,3 +14,8 @@ async def create_order(
     service: OrderService = Depends(get_order_service),
 ):
     return service.create_order(order)
+
+
+@router.get("")
+async def get_order(
+    return "all"
