@@ -17,5 +17,6 @@ async def create_order(
 
 
 @router.get("/gyg")
-async def get_order()
+async def get_order():
+    
     return "all"
