@@ -53,7 +53,7 @@ async def debug(request: Request):
         "url": str(request.url)
     }
 
-@app.get("hello")
+@app.get("/hello")
 async def hello(request: Request):
     return {
         "path": "Heelo",
