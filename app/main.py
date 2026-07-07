@@ -44,3 +44,20 @@ async def health():
         "service": settings.app_name,
         "version": settings.app_version,
     }
+    
+@app.get("/debug")
+async def debug(request: Request):
+    return {
+        "path": request.url.path,
+        "url": str(request.url)
+    }
+
+@app.get("/")
+async def health():
+    logger.info("Health endpoint called")
+
+    return {
+        "status": "UP default",
+        "service": settings.app_name,
+        "version": settings.app_version,
+    }
