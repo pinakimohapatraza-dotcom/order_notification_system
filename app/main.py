@@ -53,6 +53,13 @@ async def debug(request: Request):
         "url": str(request.url)
     }
 
+@app.get("hello")
+async def hello(request: Request):
+    return {
+        "path": "Heelo",
+        "url": str(request.url)
+    }
+
 @app.get("/")
 async def default():
     logger.info("defuult endpoint called")
