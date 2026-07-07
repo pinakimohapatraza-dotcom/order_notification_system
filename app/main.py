@@ -54,8 +54,8 @@ async def debug(request: Request):
     }
 
 @app.get("/")
-async def health():
-    logger.info("Health endpoint called")
+async def default():
+    logger.info("defuult endpoint called")
 
     return {
         "status": "UP default",
